@@ -1,0 +1,14 @@
+# config/packages/rate_limiter.yaml
+framework:
+  rate_limiter:
+    enabled: true
+    limiters:
+      api_rate:
+        policy: 'fixed_window'
+        limit: 1
+        interval: '1 minute'
+
+services:
+  Symfony\Component\RateLimiter\Storage\RedisStorage:
+    arguments:
+      - '@redis_client'
