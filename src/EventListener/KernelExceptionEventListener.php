@@ -2,16 +2,22 @@
 
 namespace App\EventListener;
 
-use App\Controller\Exception\HttpCompliantExceptionInterface;
-use Symfony\Component\HttpFoundation\JsonResponse;
+namespace App\EventListener;
+
+use App\Controller\Api\v1\Common\BadRequestResult;
+use App\Exception\HttpCompliantExceptionInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
-use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
 
 class KernelExceptionEventListener
 {
-    private const DEFAULT_PROPERTY = 'error';
+    public function __construct(
+        private readonly SerializerInterface $serializer
+    ) {
+    }
 
     public function onKernelException(ExceptionEvent $event): void
     {
@@ -19,26 +25,27 @@ class KernelExceptionEventListener
 
         if ($exception instanceof HttpCompliantExceptionInterface) {
             $event->setResponse($this->getHttpResponse($exception->getHttpResponseBody(), $exception->getHttpCode()));
-        } else {
-            if ($exception instanceof HttpExceptionInterface) {
-                $exception = $exception->getPrevious();
+        }
+
+        if ($exception instanceof HttpException && $exception->getPrevious() instanceof ValidationFailedException) {
+            $event->setResponse($this->getHttpResponse($exception->getMessage(), Response::HTTP_BAD_REQUEST));
+        }
+
+        if ($exception instanceof ValidationFailedException) {
+            $messages = [];
+            foreach ($exception->getViolations() as $violation) {
+                $messages[] = $violation->getMessage();
             }
-            if ($exception instanceof ValidationFailedException) {
-                $event->setResponse($this->getValidationFailedResponse($exception));
-            }
+
+            $event->setResponse($this->getHttpResponse(implode("\n", $messages), Response::HTTP_UNPROCESSABLE_ENTITY));
         }
     }
 
-    private function getHttpResponse($message, $code): Response {
-        return new JsonResponse(['message' => $message], $code);
-    }
+    private function getHttpResponse($message, $code): Response
+    {
+        $errorResponse = new BadRequestResult($message);
+        $responseData = $this->serializer->serialize($errorResponse, 'json');
 
-    private function getValidationFailedResponse(ValidationFailedException $exception): Response {
-        $response = [];
-        foreach ($exception->getViolations() as $violation) {
-            $property = empty($violation->getPropertyPath()) ? self::DEFAULT_PROPERTY : $violation->getPropertyPath();
-            $response[$property] = $violation->getMessage();
-        }
-        return new JsonResponse($response, Response::HTTP_BAD_REQUEST);
+        return new Response($responseData, $code, ['Content-Type' => 'application/json']);
     }
 }

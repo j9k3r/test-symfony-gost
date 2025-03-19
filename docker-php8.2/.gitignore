@@ -1,7 +1,6 @@
 .idea
 .DS_Store
 
-.env
 
 .data/cache/psalm/*
 !.data/cache/psalm/.gitkeep

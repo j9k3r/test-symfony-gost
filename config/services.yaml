@@ -42,3 +42,10 @@ services:
     App\EventListener\KernelRequestExceptionListener:
         tags:
             - { name: kernel.event_subscriber }
+
+    guzzle.client:
+        class: GuzzleHttp\Client
+
+    App\ApiResource\DadataApiService:
+        arguments:
+            $client: '@guzzle.client'

@@ -5,7 +5,7 @@ framework:
     limiters:
       api_rate:
         policy: 'fixed_window'
-        limit: 1
+        limit: 10
         interval: '1 minute'
 
 services:
