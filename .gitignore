@@ -90,6 +90,7 @@ atlassian-ide-plugin.xml
 
 # Composer PHAR
 /composer.phar
+/.composer
 
 # Backup entities generated with doctrine:generate:entities command
 **/Entity/*~

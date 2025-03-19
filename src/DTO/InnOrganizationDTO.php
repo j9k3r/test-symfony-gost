@@ -8,7 +8,7 @@ class InnOrganizationDTO {
 
     public function __construct(
         #[Assert\NotBlank]
-        #[Assert\Length(min: 9, max: 10)]
+        #[Assert\Length(min: 10, max: 10)]
         public readonly string $inn,
     ) {
     }
